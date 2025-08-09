@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, BarChart3 } from "lucide-react"
+import * as React from "react"
+import { Calendar, BarChart3, Archive } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,8 +36,8 @@ export function EpicModal() {
   const isEditing = epic && epic.id
 
   // Update form data when epic changes
-  useState(() => {
-    if (epic) {
+  React.useEffect(() => {
+    if (epic && epic.id) {
       setFormData({
         title: epic.title,
         description: epic.description,
@@ -53,7 +54,7 @@ export function EpicModal() {
         endDate: "",
       })
     }
-  })
+  }, [epic])
 
   const handleClose = () => {
     dispatch({ type: "SELECT_EPIC", epic: null })
@@ -94,9 +95,9 @@ export function EpicModal() {
     handleClose()
   }
 
-  const handleDelete = () => {
+  const handleArchive = () => {
     if (epic && epic.id) {
-      dispatch({ type: "DELETE_EPIC", epicId: epic.id })
+      dispatch({ type: "ARCHIVE_EPIC", epicId: epic.id })
       handleClose()
     }
   }
@@ -200,8 +201,9 @@ export function EpicModal() {
           <div className="flex justify-between">
             <div>
               {isEditing && (
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete Epic
+                <Button variant="outline" onClick={handleArchive}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Epic
                 </Button>
               )}
             </div>

@@ -1,7 +1,16 @@
 "use client"
 
 import { useDrag, useDrop } from "react-dnd"
-import { Calendar, MessageSquare, Paperclip, CheckSquare, AlertCircle, Archive } from "lucide-react"
+import {
+  Calendar,
+  MessageSquare,
+  Paperclip,
+  CheckSquare,
+  AlertCircle,
+  Archive,
+  FolderOpen,
+  MoreHorizontal,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -49,31 +58,19 @@ export function BoardCard({ card, index }: BoardCardProps) {
   const completedChecklist = card.checklist.filter((item) => item.completed).length
   const totalChecklist = card.checklist.length
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "urgent":
-        return "border-l-red-500"
-      case "high":
-        return "border-l-orange-500"
-      case "medium":
-        return "border-l-yellow-500"
-      case "low":
-        return "border-l-green-500"
-      default:
-        return "border-l-gray-300"
-    }
-  }
-
   const isOverdue = card.dueDate && new Date(card.dueDate) < new Date()
+  const isFromBoard = card.listId !== ""
+  const isFromBacklog = card.listId === ""
 
   return (
     <div
       ref={(node) => drag(drop(node))}
       className={cn(
-        "bg-white rounded-lg p-3 shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-shadow",
-        getPriorityColor(card.priority),
+        "bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-sm border hover:shadow-md transition-shadow",
+        "cursor-pointer", // Add cursor pointer
         isDragging && "opacity-50",
         isOver && "transform scale-105",
+        state.settings?.darkMode && "bg-gray-800/95 text-white border-gray-600",
       )}
       onClick={() => dispatch({ type: "SELECT_CARD", card })}
     >
@@ -85,8 +82,6 @@ export function BoardCard({ card, index }: BoardCardProps) {
       )}
 
       <h4 className="font-medium text-gray-900 mb-2">{card.title}</h4>
-
-      {card.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{card.description}</p>}
 
       {card.labels.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
@@ -147,19 +142,55 @@ export function BoardCard({ card, index }: BoardCardProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
-                <Archive className="w-3 h-3" />
+              <Button variant="ghost" size="sm" className="w-6 h-6 p-0 cursor-pointer">
+                <MoreHorizontal className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  dispatch({ type: "MOVE_TO_BACKLOG", cardId: card.id, listId: card.listId })
-                }}
-              >
-                Move to Backlog
-              </DropdownMenuItem>
+              {isFromBoard && (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dispatch({ type: "MOVE_TO_BACKLOG", cardId: card.id, listId: card.listId })
+                    }}
+                  >
+                    <FolderOpen className="w-3 h-3 mr-2" />
+                    Move to Backlog
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dispatch({ type: "ARCHIVE_CARD", cardId: card.id, listId: card.listId })
+                    }}
+                  >
+                    <Archive className="w-3 h-3 mr-2" />
+                    Archive Card
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isFromBacklog && (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dispatch({ type: "MOVE_FROM_BACKLOG", cardId: card.id, targetListId: "1" })
+                    }}
+                  >
+                    <FolderOpen className="w-3 h-3 mr-2" />
+                    Move to Board
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dispatch({ type: "ARCHIVE_CARD", cardId: card.id, listId: card.listId })
+                    }}
+                  >
+                    <Archive className="w-3 h-3 mr-2" />
+                    Archive Card
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

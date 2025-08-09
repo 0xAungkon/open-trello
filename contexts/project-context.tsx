@@ -19,6 +19,7 @@ export interface Card {
   attachments: Attachment[]
   createdAt: string
   updatedAt: string
+  archived?: boolean
 }
 
 export interface List {
@@ -37,6 +38,7 @@ export interface Epic {
   endDate?: string
   progress: number
   cards: string[]
+  archived?: boolean
 }
 
 export interface Label {
@@ -72,6 +74,13 @@ export interface Attachment {
   type: string
 }
 
+export interface ProjectSettings {
+  projectName: string
+  backgroundImage: string
+  backgroundType: "url" | "upload"
+  darkMode: boolean
+}
+
 interface ProjectState {
   lists: List[]
   epics: Epic[]
@@ -80,6 +89,8 @@ interface ProjectState {
   selectedCard: Card | null
   selectedEpic: Epic | null
   backlogCards: Card[]
+  settings: ProjectSettings
+  showSettings: boolean
 }
 
 type ProjectAction =
@@ -87,6 +98,8 @@ type ProjectAction =
   | { type: "ADD_CARD"; listId: string; card: Omit<Card, "id" | "createdAt" | "updatedAt"> }
   | { type: "UPDATE_CARD"; card: Card }
   | { type: "DELETE_CARD"; cardId: string; listId: string }
+  | { type: "ARCHIVE_CARD"; cardId: string; listId: string }
+  | { type: "RESTORE_CARD"; cardId: string; targetListId: string }
   | { type: "ADD_LIST"; title: string }
   | { type: "UPDATE_LIST"; listId: string; title: string }
   | { type: "DELETE_LIST"; listId: string }
@@ -94,9 +107,19 @@ type ProjectAction =
   | { type: "ADD_EPIC"; epic: Omit<Epic, "id"> }
   | { type: "UPDATE_EPIC"; epic: Epic }
   | { type: "DELETE_EPIC"; epicId: string }
+  | { type: "ARCHIVE_EPIC"; epicId: string }
+  | { type: "RESTORE_EPIC"; epicId: string }
   | { type: "SELECT_EPIC"; epic: Epic | null }
   | { type: "MOVE_TO_BACKLOG"; cardId: string; listId: string }
   | { type: "MOVE_FROM_BACKLOG"; cardId: string; targetListId: string }
+  | { type: "ADD_LABEL"; label: Omit<Label, "id"> }
+  | { type: "UPDATE_LABEL"; label: Label }
+  | { type: "DELETE_LABEL"; labelId: string }
+  | { type: "ADD_MEMBER"; member: Omit<Member, "id"> }
+  | { type: "UPDATE_MEMBER"; member: Member }
+  | { type: "DELETE_MEMBER"; memberId: string }
+  | { type: "UPDATE_SETTINGS"; settings: Partial<ProjectSettings> }
+  | { type: "TOGGLE_SETTINGS"; show?: boolean }
 
 const initialState: ProjectState = {
   lists: [
@@ -268,6 +291,13 @@ const initialState: ProjectState = {
       updatedAt: "2024-01-03T12:00:00Z",
     },
   ],
+  settings: {
+    projectName: "Project Board",
+    backgroundImage: "/images/mountain-background.jpg",
+    backgroundType: "url",
+    darkMode: false,
+  },
+  showSettings: false,
 }
 
 function projectReducer(state: ProjectState, action: ProjectAction): ProjectState {
@@ -311,9 +341,15 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
       const newCard: Card = {
         ...action.card,
         id: Date.now().toString(),
-        priority: action.card.priority || "medium", // Ensure priority is never empty
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+      }
+
+      if (action.listId === "") {
+        return {
+          ...state,
+          backlogCards: [...state.backlogCards, newCard],
+        }
       }
 
       return {
@@ -348,7 +384,45 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
         lists: state.lists.map((list) =>
           list.id === action.listId ? { ...list, cards: list.cards.filter((card) => card.id !== action.cardId) } : list,
         ),
+        backlogCards: state.backlogCards.filter((card) => card.id !== action.cardId),
         selectedCard: state.selectedCard?.id === action.cardId ? null : state.selectedCard,
+      }
+    }
+
+    case "ARCHIVE_CARD": {
+      return {
+        ...state,
+        lists: state.lists.map((list) =>
+          list.id === action.listId
+            ? {
+                ...list,
+                cards: list.cards.map((card) => (card.id === action.cardId ? { ...card, archived: true } : card)),
+              }
+            : list,
+        ),
+        backlogCards: state.backlogCards.map((card) =>
+          card.id === action.cardId ? { ...card, archived: true } : card,
+        ),
+        selectedCard: state.selectedCard?.id === action.cardId ? null : state.selectedCard,
+      }
+    }
+
+    case "RESTORE_CARD": {
+      return {
+        ...state,
+        lists: state.lists.map((list) =>
+          list.id === action.targetListId
+            ? {
+                ...list,
+                cards: list.cards.map((card) =>
+                  card.id === action.cardId ? { ...card, archived: false, listId: action.targetListId } : card,
+                ),
+              }
+            : list,
+        ),
+        backlogCards: state.backlogCards.map((card) =>
+          card.id === action.cardId ? { ...card, archived: false } : card,
+        ),
       }
     }
 
@@ -404,6 +478,21 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
       }
     }
 
+    case "ARCHIVE_EPIC": {
+      return {
+        ...state,
+        epics: state.epics.map((epic) => (epic.id === action.epicId ? { ...epic, archived: true } : epic)),
+        selectedEpic: state.selectedEpic?.id === action.epicId ? null : state.selectedEpic,
+      }
+    }
+
+    case "RESTORE_EPIC": {
+      return {
+        ...state,
+        epics: state.epics.map((epic) => (epic.id === action.epicId ? { ...epic, archived: false } : epic)),
+      }
+    }
+
     case "SELECT_EPIC": {
       return { ...state, selectedEpic: action.epic }
     }
@@ -445,6 +534,64 @@ function projectReducer(state: ProjectState, action: ProjectAction): ProjectStat
         lists: state.lists.map((list) =>
           list.id === action.targetListId ? { ...list, cards: [...list.cards, updatedCard] } : list,
         ),
+      }
+    }
+
+    case "ADD_LABEL": {
+      const newLabel: Label = {
+        ...action.label,
+        id: Date.now().toString(),
+      }
+      return { ...state, labels: [...state.labels, newLabel] }
+    }
+
+    case "UPDATE_LABEL": {
+      return {
+        ...state,
+        labels: state.labels.map((label) => (label.id === action.label.id ? action.label : label)),
+      }
+    }
+
+    case "DELETE_LABEL": {
+      return {
+        ...state,
+        labels: state.labels.filter((label) => label.id !== action.labelId),
+      }
+    }
+
+    case "ADD_MEMBER": {
+      const newMember: Member = {
+        ...action.member,
+        id: Date.now().toString(),
+      }
+      return { ...state, members: [...state.members, newMember] }
+    }
+
+    case "UPDATE_MEMBER": {
+      return {
+        ...state,
+        members: state.members.map((member) => (member.id === action.member.id ? action.member : member)),
+      }
+    }
+
+    case "DELETE_MEMBER": {
+      return {
+        ...state,
+        members: state.members.filter((member) => member.id !== action.memberId),
+      }
+    }
+
+    case "UPDATE_SETTINGS": {
+      return {
+        ...state,
+        settings: { ...state.settings, ...action.settings },
+      }
+    }
+
+    case "TOGGLE_SETTINGS": {
+      return {
+        ...state,
+        showSettings: action.show !== undefined ? action.show : !state.showSettings,
       }
     }
 

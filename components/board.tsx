@@ -21,13 +21,13 @@ export function Board() {
   }
 
   return (
-    <div className="flex-1 overflow-x-auto p-6">
-      <div className="flex space-x-6 min-w-max">
+    <div className="flex-1 p-3 md:p-6 overflow-hidden">
+      <div className="flex space-x-3 md:space-x-6 h-full overflow-x-auto overflow-y-hidden scrollbar-hide pb-4">
         {state.lists.map((list) => (
           <BoardList key={list.id} list={list} />
         ))}
 
-        <div className="flex-shrink-0 w-72">
+        <div className="flex-shrink-0 w-64 md:w-72">
           {isAddingList ? (
             <div className="bg-white rounded-lg p-4 shadow-sm border">
               <Input

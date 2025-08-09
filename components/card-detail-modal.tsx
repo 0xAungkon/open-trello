@@ -1,7 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Tag, Users, MessageSquare, Paperclip, CheckSquare, Plus, Trash2, Flag } from "lucide-react"
+import {
+  Calendar,
+  Tag,
+  Users,
+  MessageSquare,
+  Paperclip,
+  CheckSquare,
+  Plus,
+  Trash2,
+  Flag,
+  Archive,
+  RotateCcw,
+  X,
+} from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useProject } from "@/contexts/project-context"
 import { cn } from "@/lib/utils"
 
@@ -73,26 +87,65 @@ export function CardDetailModal() {
     handleUpdateCard({ checklist: updatedChecklist })
   }
 
+  const handleToggleMember = (memberId: string) => {
+    const isMemberAssigned = card.members.some((m) => m.id === memberId)
+    const member = state.members.find((m) => m.id === memberId)
+
+    if (!member) return
+
+    if (isMemberAssigned) {
+      handleUpdateCard({ members: card.members.filter((m) => m.id !== memberId) })
+    } else {
+      handleUpdateCard({ members: [...card.members, member] })
+    }
+  }
+
+  const handleToggleLabel = (labelId: string) => {
+    const isLabelAssigned = card.labels.some((l) => l.id === labelId)
+    const label = state.labels.find((l) => l.id === labelId)
+
+    if (!label) return
+
+    if (isLabelAssigned) {
+      handleUpdateCard({ labels: card.labels.filter((l) => l.id !== labelId) })
+    } else {
+      handleUpdateCard({ labels: [...card.labels, label] })
+    }
+  }
+
   const completedItems = card.checklist.filter((item) => item.completed).length
   const totalItems = card.checklist.length
   const progress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className={cn(
+          "max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto",
+          state.settings?.darkMode ? "bg-gray-900 text-white border-gray-700" : "bg-white",
+        )}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             {epic && <div className={cn("w-3 h-3 rounded-full", epic.color)} />}
             <Input
               value={card.title}
               onChange={(e) => handleUpdateCard({ title: e.target.value })}
-              className="text-lg font-semibold border-none p-0 h-auto"
+              className={cn(
+                "text-lg font-semibold border-none p-0 h-auto focus:ring-0 focus:border-none cursor-text",
+                state.settings?.darkMode ? "bg-transparent text-white" : "bg-transparent",
+              )}
             />
+            {card.archived && (
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                Archived
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <div>
               <h3 className="font-semibold mb-2">Description</h3>
               <Textarea
@@ -100,6 +153,7 @@ export function CardDetailModal() {
                 value={card.description}
                 onChange={(e) => handleUpdateCard({ description: e.target.value })}
                 rows={4}
+                className={cn("cursor-text", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "")}
               />
             </div>
 
@@ -124,7 +178,12 @@ export function CardDetailModal() {
                     <div key={item.id} className="flex items-center space-x-2">
                       <Checkbox checked={item.completed} onCheckedChange={() => handleToggleChecklistItem(item.id)} />
                       <span className={cn("flex-1", item.completed && "line-through text-gray-500")}>{item.text}</span>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteChecklistItem(item.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteChecklistItem(item.id)}
+                        className="cursor-pointer"
+                      >
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
@@ -139,8 +198,9 @@ export function CardDetailModal() {
                 value={newChecklistItem}
                 onChange={(e) => setNewChecklistItem(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleAddChecklistItem()}
+                className={cn("cursor-text", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "")}
               />
-              <Button onClick={handleAddChecklistItem}>
+              <Button onClick={handleAddChecklistItem} className="cursor-pointer">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -182,20 +242,23 @@ export function CardDetailModal() {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleAddComment()}
+                    className={cn("cursor-text", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "")}
                   />
-                  <Button onClick={handleAddComment}>Comment</Button>
+                  <Button onClick={handleAddComment} className="cursor-pointer">
+                    Comment
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 lg:space-y-4">
             <div>
               <h4 className="font-medium mb-2 flex items-center">
                 <Users className="w-4 h-4 mr-2" />
                 Members
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mb-2">
                 {card.members.map((member) => (
                   <div key={member.id} className="flex items-center space-x-2 bg-gray-100 rounded-full px-2 py-1">
                     <Avatar className="w-5 h-5">
@@ -203,12 +266,50 @@ export function CardDetailModal() {
                       <AvatarFallback className="text-xs">{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="text-xs">{member.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-4 h-4 p-0 cursor-pointer"
+                      onClick={() => handleToggleMember(member.id)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm">
-                  <Plus className="w-3 h-3" />
-                </Button>
               </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="cursor-pointer bg-transparent">
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Member
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className={cn("w-64", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "")}>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Team Members</h4>
+                    {state.members.map((member) => (
+                      <div
+                        key={member.id}
+                        className={cn(
+                          "flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-gray-100",
+                          state.settings?.darkMode ? "hover:bg-gray-700" : "",
+                          card.members.some((m) => m.id === member.id) ? "bg-blue-50" : "",
+                        )}
+                        onClick={() => handleToggleMember(member.id)}
+                      >
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={member.avatar || "/placeholder.svg"} />
+                          <AvatarFallback className="text-xs">{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{member.name}</span>
+                        {card.members.some((m) => m.id === member.id) && (
+                          <CheckSquare className="w-4 h-4 text-blue-500 ml-auto" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
@@ -216,16 +317,50 @@ export function CardDetailModal() {
                 <Tag className="w-4 h-4 mr-2" />
                 Labels
               </h4>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mb-2">
                 {card.labels.map((label) => (
-                  <Badge key={label.id} className={cn("text-xs text-white", label.color)}>
-                    {label.name}
-                  </Badge>
+                  <div key={label.id} className="flex items-center space-x-1">
+                    <Badge className={cn("text-white", label.color)}>{label.name}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-4 h-4 p-0 cursor-pointer"
+                      onClick={() => handleToggleLabel(label.id)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
                 ))}
-                <Button variant="outline" size="sm">
-                  <Plus className="w-3 h-3" />
-                </Button>
               </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="cursor-pointer bg-transparent">
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Label
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className={cn("w-64", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "")}>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Available Labels</h4>
+                    {state.labels.map((label) => (
+                      <div
+                        key={label.id}
+                        className={cn(
+                          "flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-gray-100",
+                          state.settings?.darkMode ? "hover:bg-gray-700" : "",
+                          card.labels.some((l) => l.id === label.id) ? "bg-blue-50" : "",
+                        )}
+                        onClick={() => handleToggleLabel(label.id)}
+                      >
+                        <Badge className={cn("text-white", label.color)}>{label.name}</Badge>
+                        {card.labels.some((l) => l.id === label.id) && (
+                          <CheckSquare className="w-4 h-4 text-blue-500 ml-auto" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
@@ -237,6 +372,7 @@ export function CardDetailModal() {
                 type="date"
                 value={card.dueDate || ""}
                 onChange={(e) => handleUpdateCard({ dueDate: e.target.value })}
+                className={cn("cursor-text", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "")}
               />
             </div>
 
@@ -246,10 +382,10 @@ export function CardDetailModal() {
                 Priority
               </h4>
               <Select value={card.priority} onValueChange={(value: any) => handleUpdateCard({ priority: value })}>
-                <SelectTrigger>
+                <SelectTrigger className={state.settings?.darkMode ? "bg-gray-800 border-gray-600" : ""}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={state.settings?.darkMode ? "bg-gray-800 border-gray-600" : ""}>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
@@ -264,19 +400,21 @@ export function CardDetailModal() {
                 value={card.epicId || "none"}
                 onValueChange={(value) => handleUpdateCard({ epicId: value === "none" ? undefined : value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className={state.settings?.darkMode ? "bg-gray-800 border-gray-600" : ""}>
                   <SelectValue placeholder="Select epic..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={state.settings?.darkMode ? "bg-gray-800 border-gray-600" : ""}>
                   <SelectItem value="none">No Epic</SelectItem>
-                  {state.epics.map((epic) => (
-                    <SelectItem key={epic.id} value={epic.id}>
-                      <div className="flex items-center space-x-2">
-                        <div className={cn("w-2 h-2 rounded-full", epic.color)} />
-                        <span>{epic.title}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {state.epics
+                    .filter((epic) => !epic.archived)
+                    .map((epic) => (
+                      <SelectItem key={epic.id} value={epic.id}>
+                        <div className="flex items-center space-x-2">
+                          <div className={cn("w-2 h-2 rounded-full", epic.color)} />
+                          <span>{epic.title}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -286,24 +424,53 @@ export function CardDetailModal() {
                 <Paperclip className="w-4 h-4 mr-2" />
                 Attachments
               </h4>
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full bg-transparent cursor-pointer">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Attachment
               </Button>
             </div>
 
-            <div className="pt-4 border-t">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={() => {
-                  dispatch({ type: "DELETE_CARD", cardId: card.id, listId: card.listId })
-                  handleClose()
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Card
-              </Button>
+            <div className="pt-4 border-t space-y-2">
+              {card.archived ? (
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent cursor-pointer"
+                  onClick={() => {
+                    dispatch({ type: "RESTORE_CARD", cardId: card.id, targetListId: card.listId || "1" })
+                    handleClose()
+                  }}
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Restore Card
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent cursor-pointer"
+                  onClick={() => {
+                    dispatch({ type: "ARCHIVE_CARD", cardId: card.id, listId: card.listId })
+                    handleClose()
+                  }}
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Card
+                </Button>
+              )}
+
+              {/* Only show delete button for archived cards */}
+              {card.archived && (
+                <Button
+                  variant="destructive"
+                  className="w-full cursor-pointer"
+                  onClick={() => {
+                    dispatch({ type: "DELETE_CARD", cardId: card.id, listId: card.listId })
+                    handleClose()
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Card
+                </Button>
+              )}
             </div>
           </div>
         </div>
