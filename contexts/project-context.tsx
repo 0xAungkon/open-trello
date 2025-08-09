@@ -605,8 +605,29 @@ const ProjectContext = createContext<{
   dispatch: React.Dispatch<ProjectAction>
 } | null>(null)
 
-export function ProjectProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(projectReducer, initialState)
+export function ProjectProvider({
+  children,
+  project,
+  user,
+}: {
+  children: ReactNode
+  project?: any
+  user?: any
+}) {
+  // Initialize with project-specific data if provided
+  const initialStateWithProject = project
+    ? {
+        ...initialState,
+        settings: {
+          ...initialState.settings,
+          projectName: project.name,
+          backgroundImage: project.background_image || initialState.settings.backgroundImage,
+          darkMode: project.dark_mode || false,
+        },
+      }
+    : initialState
+
+  const [state, dispatch] = useReducer(projectReducer, initialStateWithProject)
 
   return <ProjectContext.Provider value={{ state, dispatch }}>{children}</ProjectContext.Provider>
 }

@@ -12,48 +12,21 @@ import { BacklogView } from "@/components/backlog-view"
 import { ArchiveView } from "@/components/archive-view"
 import { EpicsView } from "@/components/epics-view"
 import { SettingsModal } from "@/components/settings-modal"
-import { useProject } from "@/contexts/project-context"
-import { cn } from "@/lib/utils"
-import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth"
+import { ProjectProvider } from "@/contexts/project-context"
+import type { User } from "@/lib/auth"
+import type { Project } from "@/lib/database"
 
-export default async function HomePage() {
-  const user = await getCurrentUser()
-
-  if (user) {
-    redirect("/projects")
-  } else {
-    redirect("/login")
-  }
+interface ProjectBoardProps {
+  project: Project
+  user: User
 }
 
-function AppContent() {
-  const { state, dispatch } = useProject()
+function ProjectBoardContent() {
   const [currentView, setCurrentView] = useState<"board" | "backlog" | "epics" | "archive">("board")
-
-  const handleCloseSettings = () => {
-    dispatch({ type: "TOGGLE_SETTINGS", show: false })
-  }
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div
-        className={cn("flex h-screen overflow-hidden relative", state.settings.darkMode ? "dark" : "")}
-        style={{
-          backgroundImage: `url(${state.settings.backgroundImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        {/* Background overlay */}
-        <div
-          className={cn(
-            "absolute inset-0 backdrop-blur-[1px]",
-            state.settings.darkMode ? "bg-black/40" : "bg-black/20",
-          )}
-        />
-
+      <div className="flex h-screen overflow-hidden relative">
         <div className="relative z-10 flex w-full">
           <Sidebar currentView={currentView} onViewChange={setCurrentView} />
           <div className="flex-1 flex flex-col min-w-0">
@@ -68,8 +41,16 @@ function AppContent() {
         </div>
         <CardDetailModal />
         <EpicModal />
-        <SettingsModal isOpen={state.showSettings} onClose={handleCloseSettings} />
+        <SettingsModal isOpen={false} onClose={() => {}} />
       </div>
     </DndProvider>
+  )
+}
+
+export function ProjectBoard({ project, user }: ProjectBoardProps) {
+  return (
+    <ProjectProvider project={project} user={user}>
+      <ProjectBoardContent />
+    </ProjectProvider>
   )
 }

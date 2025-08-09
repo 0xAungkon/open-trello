@@ -141,15 +141,25 @@ export function BoardCard({ card, index }: BoardCardProps) {
           )}
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="w-6 h-6 p-0 cursor-pointer">
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-6 h-6 p-0 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent
+              align="end"
+              className={cn("z-50", state.settings?.darkMode ? "bg-gray-800 border-gray-600" : "bg-white")}
+              onClick={(e) => e.stopPropagation()}
+            >
               {isFromBoard && (
                 <>
                   <DropdownMenuItem
+                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation()
                       dispatch({ type: "MOVE_TO_BACKLOG", cardId: card.id, listId: card.listId })
@@ -159,6 +169,7 @@ export function BoardCard({ card, index }: BoardCardProps) {
                     Move to Backlog
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation()
                       dispatch({ type: "ARCHIVE_CARD", cardId: card.id, listId: card.listId })
@@ -172,6 +183,7 @@ export function BoardCard({ card, index }: BoardCardProps) {
               {isFromBacklog && (
                 <>
                   <DropdownMenuItem
+                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation()
                       dispatch({ type: "MOVE_FROM_BACKLOG", cardId: card.id, targetListId: "1" })
@@ -181,6 +193,7 @@ export function BoardCard({ card, index }: BoardCardProps) {
                     Move to Board
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation()
                       dispatch({ type: "ARCHIVE_CARD", cardId: card.id, listId: card.listId })
