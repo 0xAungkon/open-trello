@@ -1,4 +1,4 @@
-# Built-Trello-like project software
+# Open Trello Experimental - This project was entierly created with vibe coding . 
 
 *Automatically synced with your [v0.dev](https://v0.dev) deployments*
 
